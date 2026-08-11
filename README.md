@@ -209,9 +209,9 @@ python submission.py --predictions submissions/ --output submission.csv
 ```bibtex
 @software{biohub_tracking_2026,
   title={BioHub Cell Tracking: End-to-end 3D+Time Cell Tracking Pipeline},
-  author={Your Name},
+  author={Nidhal Zitouni},
   year={2026},
-  url={https://github.com/yourusername/biohub-cell-tracking}
+  url={https://github.com/ZitouniNidhal/biohub-cell-tracking}
 }
 ```
 
