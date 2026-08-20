@@ -1,0 +1,12 @@
+
+---
+
+**To use it on your local machine:**
+1. Copy the content above
+2. Create a new file at `README.md`
+3. Paste the content and save
+4. Commit to GitHub:
+   ```bash
+   git add README.md
+   git commit -m "Add project README"
+   git push
