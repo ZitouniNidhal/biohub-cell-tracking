@@ -1,0 +1,74 @@
+# BioHub Cell Tracking - Competition Configuration
+# Adjust paths and hyperparameters before running
+
+# ----- Data paths -----
+data:
+  train_dir: "./data/train"          # directory with training TIFF stacks
+  test_dir: "./data/test"            # directory with test TIFF stacks
+  output_dir: "./outputs"            # where predictions are saved
+  submission_path: "./submission.csv"
+
+# ----- Segmentation -----
+segmentation:
+  method: "cellpose"                 # "cellpose" | "blob" | "watershed"
+  cellpose:
+    model_type: "cyto3"              # cellpose model
+    diameter: 12.0                   # expected cell diameter in pixels
+    channels: [0, 0]                 # grayscale
+    do_3D: true                      # 3D segmentation
+    z_axis: 0
+    anisotropy: 3.0                  # z vs xy resolution ratio
+    flow_threshold: 0.4
+    cellprob_threshold: 0.0
+    min_size: 50                     # minimum cell volume in voxels
+  blob:
+    min_sigma: 2.0
+    max_sigma: 8.0
+    num_sigma: 5
+    threshold: 0.05
+  postprocess:
+    min_volume: 30                   # voxels
+    max_volume: 50000
+    remove_border: false
+
+# ----- Tracking -----
+tracking:
+  method: "hungarian"                # "hungarian" | "ilp" | "kalman"
+  max_distance_um: 7.0               # max linking distance in µm (Kaggle metric threshold)
+  max_frame_gap: 2                   # allow skipping up to N frames
+  voxel_size_um: [1.0, 0.347, 0.347] # [z, y, x] in µm — update from dataset metadata
+  appearance_cost: 100.0
+  disappearance_cost: 100.0
+
+  # Kalman filter parameters
+  kalman:
+    process_noise: 1.0
+    measurement_noise: 2.0
+
+  # ILP parameters (optional, requires pulp)
+  ilp:
+    division_cost: 50.0
+    solver: "CBC"                    # "CBC" | "GLPK"
+
+# ----- Division Detection -----
+division:
+  enabled: true
+  min_size_ratio: 0.3               # daughter cell must be ≥ 30% of mother
+  max_size_ratio: 0.8               # daughter cell must be ≤ 80% of mother
+  max_distance_um: 10.0             # max distance between mother centroid and daughters
+  max_frame_offset: 2               # division can span ±2 frames
+
+# ----- Training (optional fine-tuning) -----
+training:
+  epochs: 50
+  batch_size: 4
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  val_split: 0.2
+  seed: 42
+  checkpoint_dir: "./checkpoints"
+
+# ----- Evaluation -----
+evaluation:
+  matching_distance_um: 7.0         # Kaggle: 7 µm for node matching
+  division_weight: 0.1              # Kaggle: score = edge_jaccard + 0.1 * div_jaccard
