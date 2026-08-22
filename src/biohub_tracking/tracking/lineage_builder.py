@@ -66,6 +66,10 @@ class LineageBuilder:
         Returns:
             List of lineage trees.
         """
+        self.tracks.clear()
+        self.divisions.clear()
+        self.next_track_id = 1
+
         # Build forward and backward link maps
         forward_links = defaultdict(list)  # (frame, cell_id) -> [(next_cell_id, conf)]
         backward_links = defaultdict(list)  # (frame, cell_id) -> [(prev_cell_id, conf)]
@@ -152,19 +156,18 @@ class LineageBuilder:
             
             # Mark end of parent track at division
             # Parent track should end at division frame
-            parent_track.children_ids = [div.child1_id, div.child2_id]
+            child_track_ids = []
             
             # Update child tracks to reference parent
-            child1_key = (div.division_frame, div.child1_id)
-            child2_key = (div.division_frame, div.child2_id)
-            
-            if child1_key in cell_to_track:
-                child1_track = self.tracks[cell_to_track[child1_key]]
-                child1_track.parent_id = parent_track_id
-            
-            if child2_key in cell_to_track:
-                child2_track = self.tracks[cell_to_track[child2_key]]
-                child2_track.parent_id = parent_track_id
+            for child_id in (div.child1_id, div.child2_id):
+                child_key = (div.division_frame, child_id)
+                child_track_id = cell_to_track.get(child_key)
+                if child_track_id is None or child_track_id == parent_track_id:
+                    continue
+                child_track_ids.append(child_track_id)
+                self.tracks[child_track_id].parent_id = parent_track_id
+
+            parent_track.children_ids = child_track_ids
             
             self.divisions.append(div)
     
@@ -196,8 +199,14 @@ class LineageBuilder:
             tree = LineageTree(
                 root_id=root_id,
                 tracks=lineage_tracks,
-                divisions=[d for d in self.divisions 
-                          if d.parent_id in lineage_tracks]
+                divisions=[
+                    d for d in self.divisions
+                    if (d.parent_frame, d.parent_id) in {
+                        (frame, cell_id)
+                        for track in lineage_tracks.values()
+                        for frame, cell_id in zip(track.frames, track.cell_ids)
+                    }
+                ]
             )
             trees.append(tree)
         
