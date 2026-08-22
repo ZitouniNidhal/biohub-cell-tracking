@@ -16,6 +16,7 @@ VOXEL_SIZE_UM = (1.625, 0.40625, 0.40625)
 # True anisotropy for Cellpose = Z_voxel / XY_voxel
 ANISOTROPY = VOXEL_SIZE_UM[0] / VOXEL_SIZE_UM[1]          # ≈ 4.0
 
+<<<<<<< HEAD
 # Linking: use 10 µm as the linker cutoff (Kaggle *metric* threshold is 7 µm;
 # giving the linker a bit more slack reduces FN edges at no cost to precision).
 LINK_MAX_DIST_UM = 10.0
@@ -128,6 +129,25 @@ def process_sample(
         len(divisions),
     )
     return all_cells, links, divisions
+=======
+def process_sample(sample_path: Path, segmenter: CellSegmenter):
+	all_cells = {}
+	for frame_index, image in iter_frames(sample_path):
+		_labels, cells = segmenter.segment_frame(image, frame_index)
+		all_cells[frame_index] = cells
+	linker = HungarianLinker(max_distance=7.0, use_volume_cost=False)
+	links = []
+	linked_ids = {}
+	for frame in sorted(all_cells)[:-1]:
+		frame_links = linker.link(all_cells[frame], all_cells[frame + 1])
+		links.extend((frame, source, target, confidence)
+					 for source, target, confidence in frame_links)
+		linked_ids[frame] = [(source, target) for source, target, _ in frame_links]
+	divisions = DivisionClassifier(max_distance_um=10.0).detect(
+		all_cells, linked_ids
+	)
+	return all_cells, links, divisions
+>>>>>>> a46ae14 (feat: implement submission generation and update sample processing logic)
 
 
 def generate_submission(test_dir: Path, output_path: Path) -> None:
