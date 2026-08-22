@@ -43,16 +43,19 @@ class SubmissionBuilder:
 		edge_keys = set()
 		edges = []
 		for frame, source_cell, target_cell, _confidence in links:
-			key = ((frame, source_cell), (frame + 1, target_cell))
-			if key in node_ids and key not in edge_keys:
+			source_key = (frame, source_cell)
+			target_key = (frame + 1, target_cell)
+			key = (source_key, target_key)
+			if source_key in node_ids and target_key in node_ids and key not in edge_keys:
 				edge_keys.add(key)
 				edges.append(key)
 
 		for division in divisions:
 			parent = (division.parent_frame, division.parent_id)
 			for child in (division.child1_id, division.child2_id):
-				key = (parent, (division.division_frame, child))
-				if key in node_ids and key not in edge_keys:
+				child_key = (division.division_frame, child)
+				key = (parent, child_key)
+				if parent in node_ids and child_key in node_ids and key not in edge_keys:
 					edge_keys.add(key)
 					edges.append(key)
 
