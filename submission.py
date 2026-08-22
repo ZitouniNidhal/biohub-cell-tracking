@@ -1,4 +1,4 @@
-"""Generate a BioHub Kaggle submission from test Zarr samples."""
+
 
 import argparse
 import logging
