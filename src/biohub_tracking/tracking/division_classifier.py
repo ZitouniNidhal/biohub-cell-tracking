@@ -14,11 +14,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DivisionEvent:
-    """Represents a detected cell division (mitosis).
-
-    A DivisionEvent captures the moment when a mother cell (parent) splits
-    into exactly two daughter cells at the next frame.
-    """
 
     parent_id: int                # cell ID of the mother at parent_frame
     parent_frame: int             # frame of the mother cell
