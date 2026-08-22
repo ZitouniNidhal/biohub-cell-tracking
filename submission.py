@@ -14,8 +14,10 @@ VOXEL_SIZE_UM = (1.625, 0.40625, 0.40625)
 
 
 def process_sample(sample_path: Path, segmenter: CellSegmenter):
-	frames = dict(iter_frames(sample_path))
-	all_cells = segmenter.segment_stack(frames)
+	all_cells = {}
+	for frame_index, image in iter_frames(sample_path):
+		_labels, cells = segmenter.segment_frame(image, frame_index)
+		all_cells[frame_index] = cells
 	linker = HungarianLinker(max_distance=7.0, use_volume_cost=False)
 	links = []
 	linked_ids = {}
