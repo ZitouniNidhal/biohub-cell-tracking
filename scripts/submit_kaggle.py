@@ -1,5 +1,3 @@
-"""Kaggle-friendly entry point for generating submission.csv."""
-
 import sys
 from pathlib import Path
 
