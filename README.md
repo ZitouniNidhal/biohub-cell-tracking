@@ -1,7 +1,5 @@
 # BioHub Cell Tracking
-
-This repository generates the CSV required by the BioHub Cell Tracking Kaggle
-competition. The inference path reads Zarr v3 samples, detects cells with the
+The inference path reads Zarr v3 samples, detects cells with the
 CPU-compatible DoG/blob fallback, links consecutive frames with Hungarian
 matching, and writes node and edge rows.
 
