@@ -7,6 +7,7 @@ from typing import List, Tuple, Dict, Optional
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
+from biohub_tracking.utils import calculate_euclidean_dist
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class Cell:
         """Euclidean distance to another cell (in µm if available, else voxels)."""
         a = self.centroid_um if use_um and self.centroid_um is not None else self.centroid
         b = other.centroid_um if use_um and other.centroid_um is not None else other.centroid
-        return float(np.linalg.norm(a - b))
+        return calculate_euclidean_dist(a, b)
 
 
 @dataclass
