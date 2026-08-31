@@ -17,7 +17,7 @@ segmentation:
     channels: [0, 0]                 # grayscale
     do_3D: true                      # 3D segmentation
     z_axis: 0
-    anisotropy: 3.0                  # z vs xy resolution ratio
+    anisotropy: 4.0                  # z vs xy resolution ratio (1.625/0.40625)
     flow_threshold: 0.4
     cellprob_threshold: 0.0
     min_size: 50                     # minimum cell volume in voxels
