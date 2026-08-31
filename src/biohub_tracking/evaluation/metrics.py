@@ -1,7 +1,6 @@
 """Official Kaggle competition metrics: Edge Jaccard and Division Jaccard."""
 
-import logging
-from typing import Dict, List, Tuple, Optional, Set
+from biohub_tracking.constants import DIVISION_SCORE_WEIGHT, MATCH_DIST_UM
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -28,7 +27,7 @@ class KaggleMetrics:
         https://www.kaggle.com/competitions/biohub-cell-tracking-during-development/overview/evaluation
     """
 
-    MATCH_DIST_UM = 7.0   # maximum matching distance (µm)
+    MATCH_DIST_UM = MATCH_DIST_UM   # maximum matching distance (µm)
 
     def __init__(self, matching_distance_um: float = MATCH_DIST_UM):
         self.matching_distance_um = matching_distance_um
@@ -64,7 +63,7 @@ class KaggleMetrics:
         # 3. Division Jaccard
         dj = self._division_jaccard(pred_edges, gt_edges, pred_to_gt)
 
-        total = ej + 0.1 * dj
+        total = ej + DIVISION_SCORE_WEIGHT * dj
 
         return {
             "edge_jaccard": ej,

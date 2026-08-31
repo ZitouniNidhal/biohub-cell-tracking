@@ -3,50 +3,42 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
+from biohub_tracking.config import cfg
+from biohub_tracking.constants import DEFAULT_VOXEL_SIZE_UM, DEFAULT_ANISOTROPY
 from biohub_tracking.data.zarr_loader import iter_frames
 from biohub_tracking.evaluation.submission_builder import SubmissionBuilder
 from biohub_tracking.segmentation.segmenter import CellSegmenter
-from biohub_tracking.tracking.division_classifier import DivisionClassifier
+from biohub_tracking.tracking.division_detector import DivisionDetector
 from biohub_tracking.tracking.linker import Cell, HungarianLinker
 
-# ─── Competition constants ────────────────────────────────────────────────────
-# Physical voxel size in µm: [Z, Y, X]
-VOXEL_SIZE_UM = (1.625, 0.40625, 0.40625)
-
-# True anisotropy for Cellpose = Z_voxel / XY_voxel
-ANISOTROPY = VOXEL_SIZE_UM[0] / VOXEL_SIZE_UM[1]          # ≈ 4.0
-
-# Linking: use 10 µm as the linker cutoff (Kaggle *metric* threshold is 7 µm;
-# giving the linker a bit more slack reduces FN edges at no cost to precision).
-LINK_MAX_DIST_UM = 10.0
-
-# Allow bridging across 1 missing frame (gap-2 tracking)
-MAX_FRAME_GAP = 2
+# Use logging for all pipeline messages
+logger = logging.getLogger(__name__)
 
 
 def _make_segmenter() -> CellSegmenter:
-    """Build the segmenter with competition-tuned parameters."""
+    """Build the segmenter with parameters from config.yaml."""
     return CellSegmenter(
-        method="cellpose",              # tries Cellpose; falls back to blob
-        diameter=12.0,
-        do_3D=True,
-        anisotropy=ANISOTROPY,
-        flow_threshold=0.4,
-        cellprob_threshold=0.0,
-        min_size=50,
-        max_volume=50_000,
-        channels=(0, 0),               # grayscale
-        voxel_size_um=VOXEL_SIZE_UM,
-        model_type="cyto3",
+        method=cfg.get("segmentation.method", "cellpose"),
+        diameter=cfg.get("segmentation.cellpose.diameter", 12.0),
+        do_3D=cfg.get("segmentation.cellpose.do_3D", True),
+        anisotropy=cfg.get("segmentation.cellpose.anisotropy", DEFAULT_ANISOTROPY),
+        flow_threshold=cfg.get("segmentation.cellpose.flow_threshold", 0.4),
+        cellprob_threshold=cfg.get("segmentation.cellpose.cellprob_threshold", 0.0),
+        min_size=cfg.get("segmentation.cellpose.min_size", 50),
+        max_volume=cfg.get("segmentation.postprocess.max_volume", 50_000),
+        channels=tuple(cfg.get("segmentation.cellpose.channels", [0, 0])),
+        voxel_size_um=tuple(cfg.get("tracking.voxel_size_um", DEFAULT_VOXEL_SIZE_UM)),
+        model_type=cfg.get("segmentation.cellpose.model_type", "cyto3"),
+        remove_border=cfg.get("segmentation.postprocess.remove_border", False),
     )
 
 
 def _make_linker() -> HungarianLinker:
-    """Build the frame-to-frame linker with competition-tuned parameters."""
+    """Build the frame-to-frame linker with parameters from config.yaml."""
     return HungarianLinker(
-        max_distance=LINK_MAX_DIST_UM,
-        use_volume_cost=True,           # penalise large volume jumps
-        volume_weight=0.3,
+        max_distance=cfg.get("tracking.max_distance_um", 7.0),
+        use_volume_cost=cfg.get("tracking.use_volume_cost", True),
+        volume_weight=cfg.get("tracking.volume_weight", 0.3),
     )
 
 
@@ -74,8 +66,6 @@ def process_sample(
     linked_sources: Dict[int, Set[int]] = {f: set() for f in all_cells}
     # frame → set of cell_ids that already have an incoming link
     linked_targets: Dict[int, Set[int]] = {f: set() for f in all_cells}
-    # frame → [(source_id, target_id)]  — used by division classifier
-    linked_ids: Dict[int, List[Tuple[int, int]]] = {}
 
     sorted_frames = sorted(all_cells)
 
@@ -86,40 +76,47 @@ def process_sample(
             links.append((frame, source, target, confidence))
             linked_sources[frame].add(source)
             linked_targets[frame + 1].add(target)
-        linked_ids[frame] = [(s, t) for s, t, _ in frame_links]
 
     # ── 3. Gap-2 bridging: try to reconnect unlinked cells across 1 gap ──────
-    for frame in sorted_frames[:-2]:
-        t2 = frame + 2
-        if t2 not in all_cells:
-            continue
-        # Cells at 'frame' without a forward link AND cells at t2 without an
-        # incoming link — try to bridge them.
-        orphan_sources = [
-            c for c in all_cells[frame]
-            if c.id not in linked_sources[frame]
-        ]
-        orphan_targets = [
-            c for c in all_cells[t2]
-            if c.id not in linked_targets[t2]
-        ]
-        if not orphan_sources or not orphan_targets:
-            continue
-        bridge_links = linker.link(orphan_sources, orphan_targets)
-        for source, target, confidence in bridge_links:
-            # Record as a gap-1 then gap-2 edge pair (frame→t1 virtual, t1→t2)
-            # For the submission format we emit a direct frame→t2 edge which
-            # the Kaggle evaluator treats as normal.  We mark them with a
-            # slightly lower confidence.
-            links.append((frame, source, target, confidence * 0.9))
-            linked_ids.setdefault(frame, []).append((source, target))
-            linked_sources[frame].add(source)
-            linked_targets[t2].add(target)
+    max_gap = cfg.get("tracking.max_frame_gap", 2)
+    for gap in range(2, max_gap + 1):
+        for frame in sorted_frames:
+            t_next = frame + gap
+            if t_next not in all_cells:
+                continue
+
+            # Cells at 'frame' without a forward link AND cells at t_next without an incoming link
+            orphan_sources = [
+                c for c in all_cells[frame]
+                if c.id not in linked_sources[frame]
+            ]
+            orphan_targets = [
+                c for c in all_cells[t_next]
+                if c.id not in linked_targets[t_next]
+            ]
+
+            if not orphan_sources or not orphan_targets:
+                continue
+
+            bridge_links = linker.link(orphan_sources, orphan_targets)
+            for source, target, confidence in bridge_links:
+                # Record as a gap-N edge
+                links.append((frame, source, target, confidence * (1.0 / gap)))
+                linked_sources[frame].add(source)
+                linked_targets[t_next].add(target)
 
     # ── 4. Division detection ─────────────────────────────────────────────────
-    divisions = DivisionClassifier(max_distance_um=10.0).detect(
-        all_cells, linked_ids
+    detector = DivisionDetector(
+        min_size_ratio=cfg.get("division.min_size_ratio", 0.3),
+        max_size_ratio=cfg.get("division.max_size_ratio", 0.8),
+        max_distance_um=cfg.get("division.max_distance_um", 10.0),
+        vol_balance_weight=cfg.get("division.vol_balance_weight", 0.5),
+        dist_score_weight=cfg.get("division.dist_score_weight", 0.5),
     )
+
+    # links is now a flat list of (frame, s, t, conf)
+    divisions = detector.detect(all_cells, links)
+
     logging.info(
         "  %s: %d cells, %d links, %d divisions",
         sample_path.name,

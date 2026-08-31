@@ -116,14 +116,13 @@ class CellSegmenter:
         )
 
     def _cellpose_segment(self, img: np.ndarray) -> np.ndarray:
-        """Run Cellpose 3D segmentation."""
-        if self._cellpose_model is None:
-            from cellpose import models
-            self._cellpose_model = models.Cellpose(
-                gpu=False, model_type=self.model_type
-            )
+        """Run Cellpose 3D segmentation via Adapter."""
+        from biohub_tracking.models.cellpose_adapter import CellposeAdapter
 
-        masks, _, _, _ = self._cellpose_model.eval(
+        # Initialize adapter (could be cached in __init__)
+        adapter = CellposeAdapter(model_type=self.model_type)
+
+        return adapter.segment(
             img,
             diameter=self.diameter,
             channels=self.channels,
@@ -133,7 +132,6 @@ class CellSegmenter:
             cellprob_threshold=self.cellprob_threshold,
             min_size=self.min_size,
         )
-        return masks.astype(np.int32)
 
     def _blob_segment(self, img: np.ndarray) -> np.ndarray:
         """Gaussian blob detector + watershed fallback segmentation."""

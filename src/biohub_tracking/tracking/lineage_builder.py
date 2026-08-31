@@ -8,7 +8,7 @@ from collections import defaultdict
 import numpy as np
 
 from biohub_tracking.tracking.linker import Track, Cell
-from biohub_tracking.tracking.division_classifier import DivisionEvent
+from biohub_tracking.tracking.division_detector import DivisionEvent
 
 logger = logging.getLogger(__name__)
 
