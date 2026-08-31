@@ -36,7 +36,7 @@ tracking:
   method: "hungarian"                # "hungarian" | "ilp" | "kalman"
   max_distance_um: 7.0               # max linking distance in µm (Kaggle metric threshold)
   max_frame_gap: 2                   # allow skipping up to N frames
-  voxel_size_um: [1.625, 0.40625, 0.40625] # [z, y, x] in µm
+  voxel_size_um: [1.0, 0.347, 0.347] # [z, y, x] in µm — update from dataset metadata
   appearance_cost: 100.0
   disappearance_cost: 100.0
 

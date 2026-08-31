@@ -7,7 +7,6 @@ from typing import List, Dict, Optional, Tuple
 import numpy as np
 
 from biohub_tracking.tracking.linker import Cell
-from biohub_tracking.segmentation.postprocess import postprocess_labels
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +31,13 @@ class CellSegmenter:
         method: str = "cellpose",           # "cellpose" | "blob"
         diameter: float = 12.0,             # expected cell diameter (pixels)
         do_3D: bool = True,
-        anisotropy: float = 4.0,            # z vs xy resolution ratio (1.625/0.40625)
+        anisotropy: float = 3.0,            # z vs xy resolution ratio
         flow_threshold: float = 0.4,
         cellprob_threshold: float = 0.0,
         min_size: int = 50,                 # min cell volume (voxels)
-        max_volume: int = 50_000,           # max cell volume (voxels)
         channels: Tuple[int, int] = (0, 0), # grayscale
         voxel_size_um: Tuple[float, float, float] = (1.0, 0.347, 0.347),
         model_type: str = "cyto3",
-        remove_border: bool = False,
     ):
         self.method = method
         self.diameter = diameter
@@ -49,11 +46,9 @@ class CellSegmenter:
         self.flow_threshold = flow_threshold
         self.cellprob_threshold = cellprob_threshold
         self.min_size = min_size
-        self.max_volume = max_volume
         self.channels = list(channels)
         self.voxel_size_um = voxel_size_um
         self.model_type = model_type
-        self.remove_border = remove_border
 
         self._cellpose_model = None
 
@@ -97,23 +92,14 @@ class CellSegmenter:
     # ------------------------------------------------------------------
 
     def _segment_frame(self, img: np.ndarray) -> np.ndarray:
-        """Return cleaned integer label array (Z, Y, X) after postprocessing."""
+        """Return integer label array (Z, Y, X)."""
         if self.method == "cellpose":
             try:
-                raw = self._cellpose_segment(img)
+                return self._cellpose_segment(img)
             except Exception as exc:
                 logger.warning(f"Cellpose failed ({exc}), falling back to blob detector.")
-                raw = self._blob_segment(img)
-        else:
-            raw = self._blob_segment(img)
-
-        # Always clean up: remove debris (too small / too large) and relabel
-        return postprocess_labels(
-            raw,
-            min_volume=self.min_size,
-            max_volume=self.max_volume,
-            remove_border=self.remove_border,
-        )
+                return self._blob_segment(img)
+        return self._blob_segment(img)
 
     def _cellpose_segment(self, img: np.ndarray) -> np.ndarray:
         """Run Cellpose 3D segmentation."""

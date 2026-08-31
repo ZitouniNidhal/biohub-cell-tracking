@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DivisionEvent:
+    """Represents a detected cell division (mitosis).
+
+    A DivisionEvent captures the moment when a mother cell (parent) splits
+    into exactly two daughter cells at the next frame.
+    """
 
     parent_id: int                # cell ID of the mother at parent_frame
     parent_frame: int             # frame of the mother cell
@@ -77,8 +82,7 @@ class DivisionClassifier:
                     break
 
                 cells_next = all_cells[t_next]
-                # Unlinked daughters = cells at t_next with no incoming link from t_next-1
-                existing_targets = set(b for _, b in linked_ids.get(t_next - 1, []))
+                existing_targets = set(b for _, b in linked_ids.get(t, []))
                 unlinked_daughters = [c for c in cells_next if c.id not in existing_targets]
 
                 new_divs = self._match_divisions(
@@ -134,8 +138,6 @@ class DivisionClassifier:
             # Try all pairs of close daughters
             best_event: Optional[DivisionEvent] = None
             best_score = -1.0
-            best_di1: int = -1
-            best_di2: int = -1
 
             for j1 in range(len(close_idxs)):
                 for j2 in range(j1 + 1, len(close_idxs)):
@@ -164,8 +166,6 @@ class DivisionClassifier:
 
                     if score > best_score:
                         best_score = score
-                        best_di1 = close_idxs[j1]
-                        best_di2 = close_idxs[j2]
                         best_event = DivisionEvent(
                             parent_id=mother.id,
                             parent_frame=t_mother,
@@ -177,7 +177,7 @@ class DivisionClassifier:
 
             if best_event is not None:
                 events.append(best_event)
-                used_daughters.add(best_di1)
-                used_daughters.add(best_di2)
+                used_daughters.add(close_idxs[j1])
+                used_daughters.add(close_idxs[j2])
 
         return events
