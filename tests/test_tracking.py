@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from biohub_tracking.tracking.linker import Cell, HungarianLinker
-from biohub_tracking.tracking.division_classifier import (
-    DivisionClassifier,
+from biohub_tracking.tracking.division_detector import (
+    DivisionDetector,
     DivisionEvent,
 )
 
@@ -93,29 +93,29 @@ class TestHungarianLinker:
 
 
 # ---------------------------------------------------------------------------
-# DivisionClassifier tests
+# DivisionDetector tests
 # ---------------------------------------------------------------------------
 
-class TestDivisionClassifier:
+class TestDivisionDetector:
 
     def test_detects_single_division(self):
         """One mother + two daughters with correct volumes → 1 division event."""
         mother_vol = 400.0
-        daughter_vol = 190.0          # each ~47.5% of mother — within 30-80%
+        daughter_vol = 190.0          # daughter pair sum = 380 (close to 400 mother)
 
         mother = _make_cell(1, 0, 0.0, 25.0, 25.0, volume=mother_vol)
         d1 = _make_cell(10, 1, 0.0, 22.0, 25.0, volume=daughter_vol)
         d2 = _make_cell(11, 1, 0.0, 28.0, 25.0, volume=daughter_vol)
 
         all_cells = {0: [mother], 1: [d1, d2]}
-        linked_ids = {0: []}          # mother has no forward link → candidate
+        links = []          # mother has no forward link → candidate
 
-        classifier = DivisionClassifier(
+        detector = DivisionDetector(
             max_distance_um=20.0,
             min_size_ratio=0.3,
             max_size_ratio=0.8,
         )
-        divisions = classifier.detect(all_cells, linked_ids)
+        divisions = detector.detect(all_cells, links)
 
         assert len(divisions) == 1, f"Expected 1 division, got {len(divisions)}"
         div: DivisionEvent = divisions[0]
@@ -135,10 +135,10 @@ class TestDivisionClassifier:
 
         all_cells = {0: [mother], 1: [d1, d2]}
         # Mother IS linked → should not be treated as a division candidate
-        linked_ids = {0: [(mother.id, d1.id)]}
+        links = [(0, mother.id, d1.id, 0.9)]
 
-        classifier = DivisionClassifier(max_distance_um=20.0)
-        divisions = classifier.detect(all_cells, linked_ids)
+        detector = DivisionDetector(max_distance_um=20.0)
+        divisions = detector.detect(all_cells, links)
         assert len(divisions) == 0
 
     def test_no_division_when_daughters_too_far(self):
@@ -148,23 +148,22 @@ class TestDivisionClassifier:
         d2 = _make_cell(11, 1, 0.0, 50.0, 50.0, volume=190.0)
 
         all_cells = {0: [mother], 1: [d1, d2]}
-        linked_ids = {0: []}
+        links = []
 
-        classifier = DivisionClassifier(max_distance_um=5.0)   # very tight
-        divisions = classifier.detect(all_cells, linked_ids)
+        detector = DivisionDetector(max_distance_um=5.0)   # very tight
+        divisions = detector.detect(all_cells, links)
         assert len(divisions) == 0
 
     def test_no_division_when_daughters_wrong_volume(self):
-        """Daughters with volume outside [30%, 80%] of mother should be rejected."""
+        """Daughters with volume far from mother volume sum should be rejected."""
         mother = _make_cell(1, 0, 0.0, 25.0, 25.0, volume=400.0)
-        # 5% of mother — too small
+        # Daughters sum = 40, error vs 400 is 90% -> low confidence
         d1 = _make_cell(10, 1, 0.0, 24.0, 25.0, volume=20.0)
-        # 95% of mother — too large
-        d2 = _make_cell(11, 1, 0.0, 26.0, 25.0, volume=380.0)
+        d2 = _make_cell(11, 1, 0.0, 26.0, 25.0, volume=20.0)
 
         all_cells = {0: [mother], 1: [d1, d2]}
-        linked_ids = {0: []}
+        links = []
 
-        classifier = DivisionClassifier(max_distance_um=20.0)
-        divisions = classifier.detect(all_cells, linked_ids)
+        detector = DivisionDetector(max_distance_um=20.0)
+        divisions = detector.detect(all_cells, links)
         assert len(divisions) == 0
