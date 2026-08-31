@@ -122,9 +122,11 @@ class DivisionDetector:
         vol_error = abs(mother.volume - vol_sum) / (mother.volume + 1e-8)
         vol_score = 1.0 - min(1.0, vol_error)
 
-        # Volume symmetry: Daughters should be balanced
-        ratio = compute_volume_ratio(d1.volume, d2.volume)
-        sym_score = 1.0 if self.min_size_ratio <= ratio <= self.max_size_ratio else 0.0
+        # Daughter to mother size ratio bounds
+        r1 = d1.volume / (mother.volume + 1e-8)
+        r2 = d2.volume / (mother.volume + 1e-8)
+        sym_score = 1.0 if (self.min_size_ratio <= r1 <= self.max_size_ratio and
+                           self.min_size_ratio <= r2 <= self.max_size_ratio) else 0.0
 
         # Spatial proximity
         dist1 = calculate_euclidean_dist(mother.centroid_um, d1.centroid_um)
