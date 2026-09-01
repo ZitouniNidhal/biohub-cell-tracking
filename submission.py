@@ -33,10 +33,21 @@ def _make_segmenter() -> CellSegmenter:
     )
 
 
-def _make_linker() -> HungarianLinker:
-    """Build the frame-to-frame linker with parameters from config.yaml."""
+def _make_linker():
+    """Build the frame-to-frame or ILP tracker with parameters from config.yaml."""
+    method = cfg.get("tracking.method", "hungarian")
+    max_dist = cfg.get("tracking.max_distance_um", 7.0)
+    
+    if method == "ilp":
+        return ILPTracker(
+            max_distance=max_dist,
+            max_frame_gap=cfg.get("tracking.max_frame_gap", 2),
+            appearance_cost=cfg.get("tracking.appearance_cost", 20.0),
+            disappearance_cost=cfg.get("tracking.disappearance_cost", 20.0),
+            division_cost=cfg.get("tracking.ilp.division_cost", 15.0),
+        )
     return HungarianLinker(
-        max_distance=cfg.get("tracking.max_distance_um", 7.0),
+        max_distance=max_dist,
         use_volume_cost=cfg.get("tracking.use_volume_cost", True),
         volume_weight=cfg.get("tracking.volume_weight", 0.3),
     )

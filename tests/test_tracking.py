@@ -167,3 +167,39 @@ class TestDivisionDetector:
         detector = DivisionDetector(max_distance_um=20.0)
         divisions = detector.detect(all_cells, links)
         assert len(divisions) == 0
+
+
+# ---------------------------------------------------------------------------
+# ILPTracker tests
+# ---------------------------------------------------------------------------
+
+class TestILPTracker:
+
+    def test_ilp_links_consecutive_frames(self):
+        """Test ILP tracker on consecutive frames."""
+        from biohub_tracking.tracking.ilp_tracker import ILPTracker
+
+        cells_t0 = [_make_cell(1, 0, 0.0, 10.0, 10.0)]
+        cells_t1 = [_make_cell(2, 1, 0.0, 10.0, 12.0)]
+        all_cells = {0: cells_t0, 1: cells_t1}
+
+        tracker = ILPTracker(max_distance=10.0)
+        tracks, links = tracker.track(all_cells)
+
+        assert len(links) == 1
+        assert links[0][0] == 1 and links[0][1] == 2
+
+    def test_ilp_gap_bridging(self):
+        """Test ILP tracker bridging a missing frame detection (frame 0 -> frame 2)."""
+        from biohub_tracking.tracking.ilp_tracker import ILPTracker
+
+        c_t0 = _make_cell(1, 0, 0.0, 10.0, 10.0)
+        c_t2 = _make_cell(2, 2, 0.0, 10.0, 13.0)  # frame 1 missing
+        all_cells = {0: [c_t0], 1: [], 2: [c_t2]}
+
+        tracker = ILPTracker(max_distance=10.0, max_frame_gap=2)
+        tracks, links = tracker.track(all_cells)
+
+        assert len(links) == 1
+        assert links[0][0] == 1 and links[0][1] == 2
+
