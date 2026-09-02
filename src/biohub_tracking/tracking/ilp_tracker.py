@@ -79,7 +79,7 @@ class ILPTracker:
         try:
             import pulp
         except ImportError:
-            logger.warning("PuLP not installed, falling back to Hungarian linker")
+            logger.warning("PuLP not installed, falling back to Hungarian linker with gap bridging")
             from biohub_tracking.tracking.linker import HungarianLinker
             linker = HungarianLinker(
                 max_distance=self.max_distance,
@@ -89,12 +89,13 @@ class ILPTracker:
             
             tracks = []
             links = []
-            frames = sorted(all_cells.keys())
-            for idx in range(len(frames) - 1):
-                t1, t2 = frames[idx], frames[idx + 1]
-                frame_links = linker.link(all_cells[t1], all_cells[t2])
-                for c1, c2, conf in frame_links:
-                    links.append((c1, c2, conf))
+            non_empty_frames = [f for f in sorted(all_cells.keys()) if all_cells[f]]
+            for idx in range(len(non_empty_frames) - 1):
+                t1, t2 = non_empty_frames[idx], non_empty_frames[idx + 1]
+                if t2 - t1 <= self.max_frame_gap:
+                    frame_links = linker.link(all_cells[t1], all_cells[t2])
+                    for c1, c2, conf in frame_links:
+                        links.append((c1, c2, conf))
             return tracks, links
 
         if not all_cells:
