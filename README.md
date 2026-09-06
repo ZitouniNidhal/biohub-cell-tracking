@@ -26,5 +26,18 @@ run:
 ```
 
 The generated file is `submission.csv` in the notebook working directory.
+
+## Kaggle Playground S6E9
+
+The EV purchase competition is a separate tabular workflow. Run the seeded
+CatBoost cross-validation ensemble with:
+
+```bash
+python ev_solution.py --data-dir /kaggle/input/playground-series-s6e9
+```
+
+The runner discovers `train.csv`, `test.csv`, and `sample_submission.csv`,
+reports stratified out-of-fold ROC AUC, and writes the required
+`id,Will_Buy_EV` probability submission plus a diagnostics JSON file.
 Submit it using the notebook's Kaggle **Submit** button. The exporter uses
 the official voxel scale `(z, y, x) = (1.625, 0.40625, 0.40625)` micrometres.

@@ -7,3 +7,5 @@ pandas==2.2.2
 pulp==2.8.0
 PyYAML==6.0.1
 scipy==1.13.0
+scikit-learn==1.5.2
+catboost==1.2.10
