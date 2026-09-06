@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biohub-cell-tracking"
+version = "0.1.0"
+description = "3D cell segmentation and tracking pipeline for BioHub samples"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26,<2",
+    "scipy>=1.13",
+    "scikit-image>=0.22",
+    "PyYAML>=6.0",
+    "zarr>=2.18,<3",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
