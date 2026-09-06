@@ -6,4 +6,4 @@ scikit-image==0.22.0
 pandas==2.2.2
 pulp==2.8.0
 PyYAML==6.0.1
-scipy==1.13.0
+scipy==1.18.1
