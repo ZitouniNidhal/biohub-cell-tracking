@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  biohub-tracking:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../data:/app/data
+      - ../models:/app/models
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["python", "submission.py", "--test-dir", "data/test"]

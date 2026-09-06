@@ -1,0 +1,15 @@
+# Tracking Only Configuration
+# Used when segmentation labels are already provided
+tracking:
+  method: "ilp"
+  max_distance_um: 10.0
+  max_frame_gap: 2
+  appearance_cost: 20.0
+  disappearance_cost: 20.0
+  ilp:
+    division_cost: 15.0
+
+division:
+  min_size_ratio: 0.3
+  max_size_ratio: 0.8
+  max_distance_um: 10.0

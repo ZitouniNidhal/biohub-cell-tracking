@@ -1,0 +1,20 @@
+# Baseline Configuration
+# Used for the standard tracking pipeline
+segmentation:
+  method: "cellpose"
+  cellpose:
+    model_type: "cyto3"
+    diameter: 12.0
+    do_3D: true
+    channels: [0, 0]
+    min_size: 50
+    flow_threshold: 0.4
+
+tracking:
+  method: "hungarian"
+  max_distance_um: 7.0
+  use_volume_cost: true
+
+division:
+  min_size_ratio: 0.3
+  max_size_ratio: 0.8

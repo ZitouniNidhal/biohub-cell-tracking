@@ -1,0 +1,10 @@
+# UNet3D Large Configuration
+# Configuration for 3D segmentation models
+segmentation:
+  method: "unet3d"
+  unet3d:
+    model_path: "models/unet3d_large.pth"
+    patch_size: [32, 128, 128]
+    overlap: 0.5
+    batch_size: 2
+    threshold: 0.5
