@@ -1,5 +1,5 @@
 # Core dependencies
-numpy==1.26.4
+numpy==2.5.2
 zarr==2.18.2
 cellpose==3.0.0
 scikit-image==0.22.0
