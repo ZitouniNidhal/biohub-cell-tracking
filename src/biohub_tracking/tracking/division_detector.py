@@ -5,8 +5,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from biohub_tracking.tracking.linker import Cell
-from biohub_tracking.utils import (calculate_euclidean_dist,
-                                   compute_volume_ratio)
+from biohub_tracking.utils import calculate_euclidean_dist, compute_volume_ratio
 
 logger = logging.getLogger(__name__)
 

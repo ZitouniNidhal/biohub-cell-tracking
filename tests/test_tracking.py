@@ -3,8 +3,7 @@
 import numpy as np
 import pytest
 
-from biohub_tracking.tracking.division_detector import (DivisionDetector,
-                                                        DivisionEvent)
+from biohub_tracking.tracking.division_detector import DivisionDetector, DivisionEvent
 from biohub_tracking.tracking.linker import Cell, HungarianLinker
 
 # ---------------------------------------------------------------------------
