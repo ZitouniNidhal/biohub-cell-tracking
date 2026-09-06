@@ -10,6 +10,7 @@ from biohub_tracking.evaluation.submission_builder import SubmissionBuilder
 from biohub_tracking.segmentation.segmenter import CellSegmenter
 from biohub_tracking.tracking.division_detector import DivisionDetector
 from biohub_tracking.tracking.linker import Cell, HungarianLinker
+from biohub_tracking.tracking.ilp_tracker import ILPTracker
 
 # Use logging for all pipeline messages
 logger = logging.getLogger(__name__)
