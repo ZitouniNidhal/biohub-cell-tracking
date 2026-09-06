@@ -4,6 +4,6 @@ zarr==2.18.2
 cellpose==3.0.0
 scikit-image==0.22.0
 pandas==2.2.2
-pulp==2.8.0
+pulp==3.3.2
 PyYAML==6.0.1
 scipy==1.13.0
