@@ -1,7 +1,7 @@
 """Kalman filter tracker for smooth trajectory prediction."""
 
 import logging
-from typing import List, Tuple, Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -44,8 +44,8 @@ class KalmanFilter3D:
         self.R = np.eye(3) * measurement_noise
 
         # State & covariance
-        self.x: Optional[np.ndarray] = None   # (6,)
-        self.P: Optional[np.ndarray] = None   # (6, 6)
+        self.x: Optional[np.ndarray] = None  # (6,)
+        self.P: Optional[np.ndarray] = None  # (6, 6)
 
     # ------------------------------------------------------------------
     def initialize(self, position: np.ndarray) -> None:
@@ -77,6 +77,7 @@ class KalmanFilter3D:
 # Multi-object Kalman tracker
 # ---------------------------------------------------------------------------
 
+
 class KalmanTracker:
     """Multi-object tracker using per-track Kalman filters.
 
@@ -85,7 +86,7 @@ class KalmanTracker:
 
     def __init__(
         self,
-        max_distance: float = 15.0,    # µm
+        max_distance: float = 15.0,  # µm
         max_missed_frames: int = 3,
         process_noise: float = 1.0,
         measurement_noise: float = 2.0,
@@ -97,8 +98,10 @@ class KalmanTracker:
 
         # Active filters indexed by track_id
         self._filters: Dict[int, KalmanFilter3D] = {}
-        self._missed: Dict[int, int] = {}       # frames missed since last update
-        self._track_cells: Dict[int, List[Tuple[int, int]]] = {}  # track -> [(frame, cell_id)]
+        self._missed: Dict[int, int] = {}  # frames missed since last update
+        self._track_cells: Dict[int, List[Tuple[int, int]]] = (
+            {}
+        )  # track -> [(frame, cell_id)]
         self._next_track_id = 1
 
     # ------------------------------------------------------------------
@@ -133,12 +136,12 @@ class KalmanTracker:
         # 2. Build cost matrix between predictions and detections
         track_ids = list(predictions.keys())
         pred_pos = np.array([predictions[t] for t in track_ids])
-        cell_pos = np.array([
-            c.centroid_um if c.centroid_um is not None else c.centroid
-            for c in cells
-        ])
+        cell_pos = np.array(
+            [c.centroid_um if c.centroid_um is not None else c.centroid for c in cells]
+        )
 
         from scipy.spatial.distance import cdist
+
         cost = cdist(pred_pos, cell_pos)
 
         # 3. Hungarian assignment
@@ -151,7 +154,9 @@ class KalmanTracker:
             if cost[r, c] < self.max_distance:
                 tid = track_ids[r]
                 cell = cells[c]
-                pos = cell.centroid_um if cell.centroid_um is not None else cell.centroid
+                pos = (
+                    cell.centroid_um if cell.centroid_um is not None else cell.centroid
+                )
                 self._filters[tid].update(pos)
                 self._missed[tid] = 0
                 self._track_cells[tid].append((frame, cell.id))

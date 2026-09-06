@@ -1,22 +1,27 @@
 import logging
 from dataclasses import dataclass
-from typing import List, Tuple, Dict, Optional
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 
 from biohub_tracking.tracking.linker import Cell
-from biohub_tracking.utils import calculate_euclidean_dist, compute_volume_ratio
+from biohub_tracking.utils import (calculate_euclidean_dist,
+                                   compute_volume_ratio)
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class DivisionEvent:
     """Represents a cell division event."""
+
     parent_id: int
     parent_frame: int
     child1_id: int
     child2_id: int
     division_frame: int
     confidence: float
+
 
 class DivisionDetector:
     """
@@ -50,7 +55,9 @@ class DivisionDetector:
     def detect(
         self,
         all_cells: Dict[int, List[Cell]],
-        links: List[Tuple[int, int, int, float]],  # (frame, cell_id_t, cell_id_t1, conf)
+        links: List[
+            Tuple[int, int, int, float]
+        ],  # (frame, cell_id_t, cell_id_t1, conf)
     ) -> List[DivisionEvent]:
         """
         Detect division events.
@@ -67,7 +74,7 @@ class DivisionDetector:
 
         for i in range(len(frames) - 1):
             t = frames[i]
-            t1 = frames[i+1]
+            t1 = frames[i + 1]
 
             cells_t = all_cells[t]
             cells_t1 = all_cells[t1]
@@ -87,7 +94,9 @@ class DivisionDetector:
             for mother in orphans_t:
                 potential_daughters = []
                 for daughter in orphans_t1:
-                    dist = calculate_euclidean_dist(mother.centroid_um, daughter.centroid_um)
+                    dist = calculate_euclidean_dist(
+                        mother.centroid_um, daughter.centroid_um
+                    )
                     if dist <= self.max_distance_um:
                         potential_daughters.append(daughter)
 
@@ -99,18 +108,21 @@ class DivisionDetector:
                             d2 = potential_daughters[idx2]
 
                             confidence = self._score_division(mother, d1, d2)
-                            if confidence > 0.5: # Threshold for detection
-                                divisions.append(DivisionEvent(
-                                    parent_id=mother.id,
-                                    parent_frame=t,
-                                    child1_id=d1.id,
-                                    child2_id=d2.id,
-                                    division_frame=t1,
-                                    confidence=confidence
-                                ))
+                            if confidence > 0.5:  # Threshold for detection
+                                divisions.append(
+                                    DivisionEvent(
+                                        parent_id=mother.id,
+                                        parent_frame=t,
+                                        child1_id=d1.id,
+                                        child2_id=d2.id,
+                                        division_frame=t1,
+                                        confidence=confidence,
+                                    )
+                                )
                                 # A mother can only divide once
                                 break
-                        else: continue
+                        else:
+                            continue
                         break
 
         return divisions
@@ -125,8 +137,14 @@ class DivisionDetector:
         # Daughter to mother size ratio bounds
         r1 = d1.volume / (mother.volume + 1e-8)
         r2 = d2.volume / (mother.volume + 1e-8)
-        sym_score = 1.0 if (self.min_size_ratio <= r1 <= self.max_size_ratio and
-                           self.min_size_ratio <= r2 <= self.max_size_ratio) else 0.0
+        sym_score = (
+            1.0
+            if (
+                self.min_size_ratio <= r1 <= self.max_size_ratio
+                and self.min_size_ratio <= r2 <= self.max_size_ratio
+            )
+            else 0.0
+        )
 
         # Spatial proximity
         dist1 = calculate_euclidean_dist(mother.centroid_um, d1.centroid_um)
@@ -135,7 +153,8 @@ class DivisionDetector:
         dist_score = 1.0 - (avg_dist / self.max_distance_um)
 
         # Weighted aggregate
-        total_score = (self.vol_balance_weight * vol_score * sym_score) + \
-                      (self.dist_score_weight * dist_score)
+        total_score = (self.vol_balance_weight * vol_score * sym_score) + (
+            self.dist_score_weight * dist_score
+        )
 
         return float(total_score)

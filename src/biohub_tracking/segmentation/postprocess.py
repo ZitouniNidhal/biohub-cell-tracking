@@ -80,6 +80,7 @@ def relabel_sequential(labels: np.ndarray) -> np.ndarray:
         Relabelled array.
     """
     from skimage.segmentation import relabel_sequential as _relabel
+
     out, _, _ = _relabel(labels)
     return out
 

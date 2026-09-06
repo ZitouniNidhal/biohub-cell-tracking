@@ -3,16 +3,14 @@
 import numpy as np
 import pytest
 
+from biohub_tracking.tracking.division_detector import (DivisionDetector,
+                                                        DivisionEvent)
 from biohub_tracking.tracking.linker import Cell, HungarianLinker
-from biohub_tracking.tracking.division_detector import (
-    DivisionDetector,
-    DivisionEvent,
-)
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_cell(
     cell_id: int,
@@ -28,7 +26,7 @@ def _make_cell(
         id=cell_id,
         frame=frame,
         centroid=pos,
-        centroid_um=pos,   # use µm == voxels for simplicity in tests
+        centroid_um=pos,  # use µm == voxels for simplicity in tests
         volume=volume,
     )
 
@@ -36,6 +34,7 @@ def _make_cell(
 # ---------------------------------------------------------------------------
 # HungarianLinker tests
 # ---------------------------------------------------------------------------
+
 
 class TestHungarianLinker:
 
@@ -47,7 +46,7 @@ class TestHungarianLinker:
             _make_cell(3, 0, 0.0, 50.0, 10.0),
         ]
         cells_t1 = [
-            _make_cell(1, 1, 0.0, 10.0, 12.0),   # shifted 2 µm in X
+            _make_cell(1, 1, 0.0, 10.0, 12.0),  # shifted 2 µm in X
             _make_cell(2, 1, 0.0, 30.0, 12.0),
             _make_cell(3, 1, 0.0, 50.0, 12.0),
         ]
@@ -89,26 +88,29 @@ class TestHungarianLinker:
         linker = HungarianLinker(max_distance=10.0)
         links = linker.link(cells_t, cells_t1)
         targets = [tgt for _, tgt, _ in links]
-        assert len(targets) == len(set(targets)), "Duplicate target assignments detected"
+        assert len(targets) == len(
+            set(targets)
+        ), "Duplicate target assignments detected"
 
 
 # ---------------------------------------------------------------------------
 # DivisionDetector tests
 # ---------------------------------------------------------------------------
 
+
 class TestDivisionDetector:
 
     def test_detects_single_division(self):
         """One mother + two daughters with correct volumes → 1 division event."""
         mother_vol = 400.0
-        daughter_vol = 190.0          # daughter pair sum = 380 (close to 400 mother)
+        daughter_vol = 190.0  # daughter pair sum = 380 (close to 400 mother)
 
         mother = _make_cell(1, 0, 0.0, 25.0, 25.0, volume=mother_vol)
         d1 = _make_cell(10, 1, 0.0, 22.0, 25.0, volume=daughter_vol)
         d2 = _make_cell(11, 1, 0.0, 28.0, 25.0, volume=daughter_vol)
 
         all_cells = {0: [mother], 1: [d1, d2]}
-        links = []          # mother has no forward link → candidate
+        links = []  # mother has no forward link → candidate
 
         detector = DivisionDetector(
             max_distance_um=20.0,
@@ -144,13 +146,13 @@ class TestDivisionDetector:
     def test_no_division_when_daughters_too_far(self):
         """Daughters beyond max_distance_um should not be matched."""
         mother = _make_cell(1, 0, 0.0, 25.0, 25.0, volume=400.0)
-        d1 = _make_cell(10, 1, 0.0, 0.0, 0.0, volume=190.0)    # 25 µm away in Y
+        d1 = _make_cell(10, 1, 0.0, 0.0, 0.0, volume=190.0)  # 25 µm away in Y
         d2 = _make_cell(11, 1, 0.0, 50.0, 50.0, volume=190.0)
 
         all_cells = {0: [mother], 1: [d1, d2]}
         links = []
 
-        detector = DivisionDetector(max_distance_um=5.0)   # very tight
+        detector = DivisionDetector(max_distance_um=5.0)  # very tight
         divisions = detector.detect(all_cells, links)
         assert len(divisions) == 0
 
@@ -172,6 +174,7 @@ class TestDivisionDetector:
 # ---------------------------------------------------------------------------
 # ILPTracker tests
 # ---------------------------------------------------------------------------
+
 
 class TestILPTracker:
 
@@ -202,4 +205,3 @@ class TestILPTracker:
 
         assert len(links) == 1
         assert links[0][0] == 1 and links[0][1] == 2
-

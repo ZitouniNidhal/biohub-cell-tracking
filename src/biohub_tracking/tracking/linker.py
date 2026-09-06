@@ -2,11 +2,12 @@
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Tuple, Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
+
 from biohub_tracking.utils import calculate_euclidean_dist
 
 logger = logging.getLogger(__name__)
@@ -16,21 +17,30 @@ logger = logging.getLogger(__name__)
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Cell:
     """Detected cell at a single time point."""
 
-    id: int                              # unique ID within its frame
-    frame: int                           # time index
-    centroid: np.ndarray                 # (z, y, x) in voxels
-    centroid_um: Optional[np.ndarray]    # (z, y, x) in µm — set after calibration
-    volume: float                        # voxel count
+    id: int  # unique ID within its frame
+    frame: int  # time index
+    centroid: np.ndarray  # (z, y, x) in voxels
+    centroid_um: Optional[np.ndarray]  # (z, y, x) in µm — set after calibration
+    volume: float  # voxel count
     features: Dict[str, float] = field(default_factory=dict)
 
     def distance_to(self, other: "Cell", use_um: bool = True) -> float:
         """Euclidean distance to another cell (in µm if available, else voxels)."""
-        a = self.centroid_um if use_um and self.centroid_um is not None else self.centroid
-        b = other.centroid_um if use_um and other.centroid_um is not None else other.centroid
+        a = (
+            self.centroid_um
+            if use_um and self.centroid_um is not None
+            else self.centroid
+        )
+        b = (
+            other.centroid_um
+            if use_um and other.centroid_um is not None
+            else other.centroid
+        )
         return calculate_euclidean_dist(a, b)
 
 
@@ -42,7 +52,7 @@ class Track:
     cell_ids: List[int] = field(default_factory=list)
     frames: List[int] = field(default_factory=list)
     centroids: List[np.ndarray] = field(default_factory=list)
-    parent_id: Optional[int] = None         # set if this track is a division daughter
+    parent_id: Optional[int] = None  # set if this track is a division daughter
     children_ids: List[int] = field(default_factory=list)  # set if this track divides
 
     @property
@@ -62,6 +72,7 @@ class Track:
 # Hungarian frame-to-frame linker
 # ---------------------------------------------------------------------------
 
+
 class HungarianLinker:
     """Greedy bipartite matching between consecutive frames using the
     Hungarian algorithm (scipy linear_sum_assignment).
@@ -72,7 +83,7 @@ class HungarianLinker:
 
     def __init__(
         self,
-        max_distance: float = 7.0,        # µm  (Kaggle matching threshold)
+        max_distance: float = 7.0,  # µm  (Kaggle matching threshold)
         use_volume_cost: bool = True,
         volume_weight: float = 0.3,
     ):
@@ -126,14 +137,18 @@ class HungarianLinker:
     ) -> np.ndarray:
         """Compute the (n_t x n_t1) cost matrix."""
         # Spatial term: Euclidean distance in µm
-        c0 = np.array([
-            c.centroid_um if c.centroid_um is not None else c.centroid
-            for c in cells_t
-        ])
-        c1 = np.array([
-            c.centroid_um if c.centroid_um is not None else c.centroid
-            for c in cells_t1
-        ])
+        c0 = np.array(
+            [
+                c.centroid_um if c.centroid_um is not None else c.centroid
+                for c in cells_t
+            ]
+        )
+        c1 = np.array(
+            [
+                c.centroid_um if c.centroid_um is not None else c.centroid
+                for c in cells_t1
+            ]
+        )
         cost = cdist(c0, c1, metric="euclidean")  # (n_t, n_t1)
 
         if self.use_volume_cost:

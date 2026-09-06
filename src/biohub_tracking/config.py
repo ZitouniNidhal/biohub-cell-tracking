@@ -1,9 +1,12 @@
-import yaml
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import yaml
+
+
 class Config:
     """Singleton configuration loader to bridge config.yaml and the Python code."""
+
     _instance = None
 
     def __new__(cls, config_path: str = "config.yaml"):
@@ -17,14 +20,18 @@ class Config:
         if not path.exists():
             # Fallback for different execution directories
             # Try to find config.yaml in the project root
-            root = path.parent.parent # Assuming called from src/biohub_tracking or similar
+            root = (
+                path.parent.parent
+            )  # Assuming called from src/biohub_tracking or similar
             candidate = root / "config.yaml"
             if candidate.exists():
                 path = candidate
             else:
-                raise FileNotFoundError(f"Configuration file not found at {config_path} or project root.")
+                raise FileNotFoundError(
+                    f"Configuration file not found at {config_path} or project root."
+                )
 
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             self._config = yaml.safe_load(f)
 
     def get(self, key_path: str, default: Any = None) -> Any:
@@ -35,7 +42,7 @@ class Config:
             key_path: Dot-separated path to the config value.
             default: Value to return if the key is not found.
         """
-        keys = key_path.split('.')
+        keys = key_path.split(".")
         val = self._config
         try:
             for k in keys:
@@ -43,6 +50,7 @@ class Config:
             return val
         except (KeyError, TypeError):
             return default
+
 
 # Global config instance for easy import
 cfg = Config()

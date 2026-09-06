@@ -1,9 +1,11 @@
-import numpy as np
 import logging
-from typing import Tuple, Optional, Dict, Any
+from typing import Any, Dict, Optional, Tuple
+
+import numpy as np
 from cellpose import models
 
 logger = logging.getLogger(__name__)
+
 
 class CellposeAdapter:
     """
@@ -30,7 +32,9 @@ class CellposeAdapter:
     def _get_model(self):
         """Lazy initialization of the Cellpose model."""
         if self._model is None:
-            logger.info(f"Initializing Cellpose model ({self.model_type}) with GPU={self.gpu}...")
+            logger.info(
+                f"Initializing Cellpose model ({self.model_type}) with GPU={self.gpu}..."
+            )
             self._model = models.Cellpose(gpu=self.gpu, model_type=self.model_type)
         return self._model
 
@@ -75,7 +79,7 @@ class CellposeAdapter:
             flow_threshold=flow_threshold,
             cellprob_threshold=cellprob_threshold,
             min_size=min_size,
-            **kwargs
+            **kwargs,
         )
 
         return masks.astype(np.int32)

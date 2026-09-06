@@ -4,10 +4,10 @@ import pytest
 
 from biohub_tracking.evaluation.metrics import KaggleMetrics
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _nodes(*positions):
     """Build a node dict from (z, y, x) tuples. IDs are auto-assigned."""
@@ -17,6 +17,7 @@ def _nodes(*positions):
 # ---------------------------------------------------------------------------
 # KaggleMetrics — Edge Jaccard
 # ---------------------------------------------------------------------------
+
 
 class TestEdgeJaccard:
 
@@ -50,7 +51,7 @@ class TestEdgeJaccard:
     def test_partial_prediction_jaccard(self):
         """Predict 1 of 2 GT edges → Jaccard = 1/(1+0+1) = 0.5."""
         nodes = _nodes((0.0, 0.0, 0.0), (0.0, 0.0, 5.0), (0.0, 0.0, 10.0))
-        pred_edges = [("0", "1")]          # predict only first edge
+        pred_edges = [("0", "1")]  # predict only first edge
         gt_edges = [("0", "1"), ("1", "2")]  # GT has two edges
         result = self.m.score(nodes, pred_edges, nodes, gt_edges)
         # TP=1, FP=0, FN=1 → Jaccard = 1/2 = 0.5
@@ -60,7 +61,7 @@ class TestEdgeJaccard:
         """Predicting extra edges (FP) lowers the Jaccard score."""
         nodes = _nodes((0.0, 0.0, 0.0), (0.0, 0.0, 5.0), (0.0, 0.0, 10.0))
         pred_edges = [("0", "1"), ("1", "2")]  # predict two edges
-        gt_edges = [("0", "1")]                # GT has only one
+        gt_edges = [("0", "1")]  # GT has only one
         result = self.m.score(nodes, pred_edges, nodes, gt_edges)
         # TP=1, FP=1, FN=0 → Jaccard = 1/2 = 0.5
         assert result["edge_jaccard"] == pytest.approx(0.5)
@@ -84,6 +85,7 @@ class TestEdgeJaccard:
 # ---------------------------------------------------------------------------
 # KaggleMetrics — Division Jaccard
 # ---------------------------------------------------------------------------
+
 
 class TestDivisionJaccard:
 
@@ -112,6 +114,7 @@ class TestDivisionJaccard:
 # KaggleMetrics — Combined score
 # ---------------------------------------------------------------------------
 
+
 class TestCombinedScore:
 
     def test_score_formula(self):
@@ -128,6 +131,12 @@ class TestCombinedScore:
         nodes = _nodes((0.0, 0.0, 0.0))
         m = KaggleMetrics()
         result = m.score(nodes, [], nodes, [])
-        for key in ("edge_jaccard", "division_jaccard", "score",
-                    "n_pred_nodes", "n_gt_nodes", "n_matched_nodes"):
+        for key in (
+            "edge_jaccard",
+            "division_jaccard",
+            "score",
+            "n_pred_nodes",
+            "n_gt_nodes",
+            "n_matched_nodes",
+        ):
             assert key in result, f"Missing key: {key}"

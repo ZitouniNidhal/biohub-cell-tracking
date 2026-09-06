@@ -3,13 +3,13 @@
 import numpy as np
 import pytest
 
-from biohub_tracking.segmentation.segmenter import CellSegmenter
 from biohub_tracking.segmentation.postprocess import postprocess_labels
-
+from biohub_tracking.segmentation.segmenter import CellSegmenter
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_blob_volume(
     shape=(10, 60, 60),
@@ -29,7 +29,7 @@ def _make_blob_volume(
         for z in range(max(0, cz - radius), min(shape[0], cz + radius + 1)):
             for y in range(max(0, cy - radius), min(shape[1], cy + radius + 1)):
                 for x in range(max(0, cx - radius), min(shape[2], cx + radius + 1)):
-                    if (z - cz) ** 2 + (y - cy) ** 2 + (x - cx) ** 2 <= radius ** 2:
+                    if (z - cz) ** 2 + (y - cy) ** 2 + (x - cx) ** 2 <= radius**2:
                         vol[z, y, x] = intensity
     return vol
 
@@ -37,6 +37,7 @@ def _make_blob_volume(
 # ---------------------------------------------------------------------------
 # Segmenter tests
 # ---------------------------------------------------------------------------
+
 
 class TestCellSegmenterBlob:
     """Tests using the blob fallback (no Cellpose required)."""
@@ -52,15 +53,16 @@ class TestCellSegmenterBlob:
             voxel_size_um=(1.0, 1.0, 1.0),
         )
         labels, cells = seg.segment_frame(vol, frame_idx=0)
-        assert len(cells) >= 2, (
-            f"Expected ≥2 cells from a 3-blob volume, got {len(cells)}"
-        )
+        assert (
+            len(cells) >= 2
+        ), f"Expected ≥2 cells from a 3-blob volume, got {len(cells)}"
 
     def test_returns_correct_frame_index(self):
         """Cells returned should carry the frame index passed to segment_frame."""
         vol = _make_blob_volume(centers=[(5, 30, 30)])
-        seg = CellSegmenter(method="blob", min_size=5, anisotropy=1.0,
-                            voxel_size_um=(1.0, 1.0, 1.0))
+        seg = CellSegmenter(
+            method="blob", min_size=5, anisotropy=1.0, voxel_size_um=(1.0, 1.0, 1.0)
+        )
         _, cells = seg.segment_frame(vol, frame_idx=7)
         for cell in cells:
             assert cell.frame == 7
@@ -69,18 +71,23 @@ class TestCellSegmenterBlob:
         """Cells below min_size must be absent in the returned cell list."""
         vol = _make_blob_volume(centers=[(5, 30, 30)], radius=4)
         # Set min_size very large so even the real cell is filtered out
-        seg = CellSegmenter(method="blob", min_size=100_000, anisotropy=1.0,
-                            voxel_size_um=(1.0, 1.0, 1.0))
-        _, cells = seg.segment_frame(vol, frame_idx=0)
-        assert len(cells) == 0, (
-            "All cells should be filtered when min_size is unrealistically large"
+        seg = CellSegmenter(
+            method="blob",
+            min_size=100_000,
+            anisotropy=1.0,
+            voxel_size_um=(1.0, 1.0, 1.0),
         )
+        _, cells = seg.segment_frame(vol, frame_idx=0)
+        assert (
+            len(cells) == 0
+        ), "All cells should be filtered when min_size is unrealistically large"
 
     def test_labels_shape_matches_input(self):
         """Label array must have the same spatial shape as the input."""
         vol = _make_blob_volume()
-        seg = CellSegmenter(method="blob", min_size=5, anisotropy=1.0,
-                            voxel_size_um=(1.0, 1.0, 1.0))
+        seg = CellSegmenter(
+            method="blob", min_size=5, anisotropy=1.0, voxel_size_um=(1.0, 1.0, 1.0)
+        )
         labels, _ = seg.segment_frame(vol, frame_idx=0)
         assert labels.shape == vol.shape
 
@@ -88,6 +95,7 @@ class TestCellSegmenterBlob:
 # ---------------------------------------------------------------------------
 # Postprocess tests
 # ---------------------------------------------------------------------------
+
 
 class TestPostprocessLabels:
 
@@ -106,7 +114,7 @@ class TestPostprocessLabels:
     def test_large_labels_removed(self):
         """Objects larger than max_volume must be zeroed out."""
         labels = np.zeros((20, 20, 20), dtype=np.int32)
-        labels[1:19, 1:19, 1:19] = 1   # volume = 18^3 = 5832
+        labels[1:19, 1:19, 1:19] = 1  # volume = 18^3 = 5832
 
         cleaned = postprocess_labels(labels, min_volume=10, max_volume=100)
         assert 1 not in np.unique(cleaned), "Oversized object should be removed"

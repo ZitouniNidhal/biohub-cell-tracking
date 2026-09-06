@@ -1,7 +1,7 @@
 """Lightweight 3D U-Net for cell detection (optional, used for training)."""
 
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -12,6 +12,7 @@ try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+
     _TORCH_AVAILABLE = True
 except ImportError:
     _TORCH_AVAILABLE = False
@@ -38,7 +39,6 @@ if _TORCH_AVAILABLE:
         def forward(self, x):
             return self.block(x)
 
-
     class Down3D(nn.Module):
         """Downsampling block: max-pool then double conv."""
 
@@ -52,14 +52,15 @@ if _TORCH_AVAILABLE:
         def forward(self, x):
             return self.block(x)
 
-
     class Up3D(nn.Module):
         """Upsampling block with skip connection."""
 
         def __init__(self, in_ch: int, out_ch: int, bilinear: bool = True):
             super().__init__()
             if bilinear:
-                self.up = nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
+                self.up = nn.Upsample(
+                    scale_factor=2, mode="trilinear", align_corners=True
+                )
                 self.conv = DoubleConv3D(in_ch, out_ch, in_ch // 2)
             else:
                 self.up = nn.ConvTranspose3d(in_ch, in_ch // 2, kernel_size=2, stride=2)
@@ -69,13 +70,18 @@ if _TORCH_AVAILABLE:
             x1 = self.up(x1)
             # Pad if needed
             diff = [x2.size(i) - x1.size(i) for i in range(2, 5)]
-            x1 = F.pad(x1, [
-                diff[2] // 2, diff[2] - diff[2] // 2,
-                diff[1] // 2, diff[1] - diff[1] // 2,
-                diff[0] // 2, diff[0] - diff[0] // 2,
-            ])
+            x1 = F.pad(
+                x1,
+                [
+                    diff[2] // 2,
+                    diff[2] - diff[2] // 2,
+                    diff[1] // 2,
+                    diff[1] - diff[1] // 2,
+                    diff[0] // 2,
+                    diff[0] - diff[0] // 2,
+                ],
+            )
             return self.conv(torch.cat([x2, x1], dim=1))
-
 
     class UNet3D(nn.Module):
         """3D U-Net for cell detection / semantic segmentation.
@@ -91,7 +97,7 @@ if _TORCH_AVAILABLE:
         def __init__(
             self,
             in_channels: int = 1,
-            n_classes: int = 2,         # background + foreground
+            n_classes: int = 2,  # background + foreground
             features: List[int] = None,
             bilinear: bool = True,
         ):
@@ -99,14 +105,15 @@ if _TORCH_AVAILABLE:
             features = features or [16, 32, 64, 128, 256]
 
             self.inc = DoubleConv3D(in_channels, features[0])
-            self.downs = nn.ModuleList([
-                Down3D(features[i], features[i + 1])
-                for i in range(len(features) - 1)
-            ])
-            self.ups = nn.ModuleList([
-                Up3D(features[i + 1] + features[i], features[i], bilinear)
-                for i in range(len(features) - 2, -1, -1)
-            ])
+            self.downs = nn.ModuleList(
+                [Down3D(features[i], features[i + 1]) for i in range(len(features) - 1)]
+            )
+            self.ups = nn.ModuleList(
+                [
+                    Up3D(features[i + 1] + features[i], features[i], bilinear)
+                    for i in range(len(features) - 2, -1, -1)
+                ]
+            )
             # Actually build standard UNet ups
             self.ups = nn.ModuleList()
             for i in range(len(features) - 1, 0, -1):
@@ -146,12 +153,13 @@ if _TORCH_AVAILABLE:
             """
             self.eval()
             tensor = torch.from_numpy(img[None, None]).float().to(device)
-            logits = self(tensor)            # (1, n_classes, Z, Y, X)
+            logits = self(tensor)  # (1, n_classes, Z, Y, X)
             probs = torch.softmax(logits, dim=1)
             fg = probs[0, 1].cpu().numpy()  # foreground probability
             return (fg > threshold).astype(np.uint8)
 
 else:
+
     class UNet3D:  # type: ignore[no-redef]
         """Stub when PyTorch is not installed."""
 

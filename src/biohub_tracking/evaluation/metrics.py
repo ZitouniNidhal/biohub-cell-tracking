@@ -1,11 +1,11 @@
 import logging
 from typing import Dict, List, Set, Tuple
 
-from biohub_tracking.constants import DIVISION_SCORE_WEIGHT, MATCH_DIST_UM
-
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
+
+from biohub_tracking.constants import DIVISION_SCORE_WEIGHT, MATCH_DIST_UM
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,7 @@ Edge = Tuple[NodeId, NodeId]
 # Kaggle official metric computation
 # ---------------------------------------------------------------------------
 
+
 class KaggleMetrics:
     """Compute the official BioHub Cell Tracking competition score.
 
@@ -28,7 +29,7 @@ class KaggleMetrics:
         https://www.kaggle.com/competitions/biohub-cell-tracking-during-development/overview/evaluation
     """
 
-    MATCH_DIST_UM = MATCH_DIST_UM   # maximum matching distance (µm)
+    MATCH_DIST_UM = MATCH_DIST_UM  # maximum matching distance (µm)
 
     def __init__(self, matching_distance_um: float = MATCH_DIST_UM):
         self.matching_distance_um = matching_distance_um
@@ -39,8 +40,8 @@ class KaggleMetrics:
 
     def score(
         self,
-        pred_nodes: Dict[NodeId, NodeCoord],           # node_id -> (z, y, x) µm
-        pred_edges: List[Edge],                         # list of (src_node_id, dst_node_id)
+        pred_nodes: Dict[NodeId, NodeCoord],  # node_id -> (z, y, x) µm
+        pred_edges: List[Edge],  # list of (src_node_id, dst_node_id)
         gt_nodes: Dict[NodeId, NodeCoord],
         gt_edges: List[Edge],
     ) -> Dict[str, float]:
@@ -99,7 +100,7 @@ class KaggleMetrics:
         gt_ids = list(gt_nodes.keys())
 
         pred_pos = np.array([pred_nodes[i] for i in pred_ids])  # (n_pred, 3)
-        gt_pos = np.array([gt_nodes[i] for i in gt_ids])        # (n_gt, 3)
+        gt_pos = np.array([gt_nodes[i] for i in gt_ids])  # (n_gt, 3)
 
         dist = cdist(pred_pos, gt_pos)  # (n_pred, n_gt)
 
@@ -190,9 +191,9 @@ class KaggleMetrics:
             gt_parent = pred_to_gt.get(pred_parent)
             if gt_parent is None:
                 continue
-            gt_children_pred = tuple(sorted(
-                pred_to_gt.get(c, "") for c in pred_children
-            ))
+            gt_children_pred = tuple(
+                sorted(pred_to_gt.get(c, "") for c in pred_children)
+            )
             if (gt_parent,) + gt_children_pred in gt_div_set:
                 tp += 1
 
@@ -206,6 +207,7 @@ class KaggleMetrics:
     def _find_divisions(edges: List[Edge]) -> Dict[NodeId, List[NodeId]]:
         """Identify nodes with 2 outgoing edges (divisions)."""
         from collections import defaultdict
+
         out_edges: Dict[NodeId, List[NodeId]] = defaultdict(list)
         for u, v in edges:
             out_edges[u].append(v)
@@ -215,6 +217,7 @@ class KaggleMetrics:
 # ---------------------------------------------------------------------------
 # Keep backward-compatible classes
 # ---------------------------------------------------------------------------
+
 
 class SegmentationMetrics:
     """Metrics for evaluating cell segmentation quality."""
@@ -247,7 +250,9 @@ class SegmentationMetrics:
                 gt_mask = gt_labels == gid
                 iou_matrix[i, j] = SegmentationMetrics.compute_iou(pred_mask, gt_mask)
         row_ind, col_ind = linear_sum_assignment(-iou_matrix)
-        tp = sum(1 for i, j in zip(row_ind, col_ind) if iou_matrix[i, j] >= iou_threshold)
+        tp = sum(
+            1 for i, j in zip(row_ind, col_ind) if iou_matrix[i, j] >= iou_threshold
+        )
         precision = tp / len(pred_ids) if len(pred_ids) > 0 else 0
         recall = tp / len(gt_ids) if len(gt_ids) > 0 else 0
         if precision + recall > 0:
@@ -310,5 +315,9 @@ class TrackingMetrics:
         tp = len(pred_set & gt_set)
         precision = tp / len(pred_set) if pred_set else 0
         recall = tp / len(gt_set)
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if (precision + recall) > 0
+            else 0
+        )
         return precision, recall, f1

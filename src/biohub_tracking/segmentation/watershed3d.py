@@ -1,7 +1,7 @@
 """3D marker-controlled watershed segmentation."""
 
 import logging
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -32,10 +32,10 @@ def watershed3d(
     Returns:
         Integer label array (Z, Y, X).
     """
+    from scipy.ndimage import label as nd_label
+    from skimage.feature import peak_local_max
     from skimage.filters import gaussian
     from skimage.segmentation import watershed
-    from skimage.feature import peak_local_max
-    from scipy.ndimage import label as nd_label
 
     # Normalise
     img = image.astype(float)
@@ -71,7 +71,9 @@ def _anisotropic_ball(radius_z: int, radius_xy: int) -> np.ndarray:
     dz = np.arange(-radius_z, radius_z + 1)
     dxy = np.arange(-radius_xy, radius_xy + 1)
     zz, yy, xx = np.meshgrid(dz, dxy, dxy, indexing="ij")
-    footprint = (zz / max(radius_z, 1)) ** 2 + (yy / max(radius_xy, 1)) ** 2 + (xx / max(radius_xy, 1)) ** 2 <= 1.0
+    footprint = (zz / max(radius_z, 1)) ** 2 + (yy / max(radius_xy, 1)) ** 2 + (
+        xx / max(radius_xy, 1)
+    ) ** 2 <= 1.0
     return footprint.astype(bool)
 
 
@@ -91,10 +93,11 @@ def split_touching_cells(
     Returns:
         Refined label array.
     """
-    from skimage.segmentation import watershed
-    from skimage.morphology import remove_small_objects
-    from scipy.ndimage import distance_transform_edt, label as nd_label
+    from scipy.ndimage import distance_transform_edt
+    from scipy.ndimage import label as nd_label
     from skimage.feature import peak_local_max
+    from skimage.morphology import remove_small_objects
+    from skimage.segmentation import watershed
 
     binary = labels > 0
     binary = remove_small_objects(binary, min_size=min_cell_volume)

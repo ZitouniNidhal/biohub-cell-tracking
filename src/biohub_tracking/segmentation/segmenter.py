@@ -2,12 +2,12 @@
 
 import logging
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from biohub_tracking.tracking.linker import Cell
 from biohub_tracking.segmentation.postprocess import postprocess_labels
+from biohub_tracking.tracking.linker import Cell
 
 logger = logging.getLogger(__name__)
 
@@ -29,15 +29,15 @@ class CellSegmenter:
 
     def __init__(
         self,
-        method: str = "cellpose",           # "cellpose" | "blob"
-        diameter: float = 12.0,             # expected cell diameter (pixels)
+        method: str = "cellpose",  # "cellpose" | "blob"
+        diameter: float = 12.0,  # expected cell diameter (pixels)
         do_3D: bool = True,
-        anisotropy: float = 4.0,            # z vs xy resolution ratio (1.625/0.40625)
+        anisotropy: float = 4.0,  # z vs xy resolution ratio (1.625/0.40625)
         flow_threshold: float = 0.4,
         cellprob_threshold: float = 0.0,
-        min_size: int = 50,                 # min cell volume (voxels)
-        max_volume: int = 50_000,           # max cell volume (voxels)
-        channels: Tuple[int, int] = (0, 0), # grayscale
+        min_size: int = 50,  # min cell volume (voxels)
+        max_volume: int = 50_000,  # max cell volume (voxels)
+        channels: Tuple[int, int] = (0, 0),  # grayscale
         voxel_size_um: Tuple[float, float, float] = (1.0, 0.347, 0.347),
         model_type: str = "cyto3",
         remove_border: bool = False,
@@ -102,7 +102,9 @@ class CellSegmenter:
             try:
                 raw = self._cellpose_segment(img)
             except Exception as exc:
-                logger.warning(f"Cellpose failed ({exc}), falling back to blob detector.")
+                logger.warning(
+                    f"Cellpose failed ({exc}), falling back to blob detector."
+                )
                 raw = self._blob_segment(img)
         else:
             raw = self._blob_segment(img)
@@ -135,11 +137,11 @@ class CellSegmenter:
 
     def _blob_segment(self, img: np.ndarray) -> np.ndarray:
         """Gaussian blob detector + watershed fallback segmentation."""
+        from scipy.ndimage import label as nd_label
         from skimage.feature import blob_log
-        from skimage.segmentation import watershed
         from skimage.filters import gaussian
         from skimage.morphology import ball
-        from scipy.ndimage import label as nd_label
+        from skimage.segmentation import watershed
 
         # Normalise
         img_norm = img.astype(float)
@@ -167,16 +169,18 @@ class CellSegmenter:
         seeds = np.zeros(img.shape, dtype=np.int32)
         for i, (z, y, x, _sigma) in enumerate(blobs):
             zz, yy, xx = int(round(z)), int(round(y)), int(round(x))
-            if 0 <= zz < img.shape[0] and 0 <= yy < img.shape[1] and 0 <= xx < img.shape[2]:
+            if (
+                0 <= zz < img.shape[0]
+                and 0 <= yy < img.shape[1]
+                and 0 <= xx < img.shape[2]
+            ):
                 seeds[zz, yy, xx] = i + 1
 
         # Watershed from seeds
         labels = watershed(-smoothed, seeds, mask=smoothed > 0.05)
         return labels.astype(np.int32)
 
-    def _labels_to_cells(
-        self, labels: np.ndarray, frame: int
-    ) -> List[Cell]:
+    def _labels_to_cells(self, labels: np.ndarray, frame: int) -> List[Cell]:
         """Convert a label array to a list of Cell objects."""
         from skimage.measure import regionprops
 
@@ -189,9 +193,11 @@ class CellSegmenter:
             centroid_um = _voxel_to_um(centroid_vox, self.voxel_size_um)
 
             features = {
-                "intensity_mean": float(region.mean_intensity)
-                if hasattr(region, "mean_intensity")
-                else 0.0,
+                "intensity_mean": (
+                    float(region.mean_intensity)
+                    if hasattr(region, "mean_intensity")
+                    else 0.0
+                ),
                 "bbox_volume": float(
                     (region.bbox[3] - region.bbox[0])
                     * (region.bbox[4] - region.bbox[1])

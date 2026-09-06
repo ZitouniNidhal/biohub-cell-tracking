@@ -1,6 +1,8 @@
-import numpy as np
 from pathlib import Path
 from typing import Union
+
+import numpy as np
+
 
 def calculate_euclidean_dist(p1: np.ndarray, p2: np.ndarray) -> float:
     """
@@ -13,6 +15,7 @@ def calculate_euclidean_dist(p1: np.ndarray, p2: np.ndarray) -> float:
         Distance as a float.
     """
     return float(np.linalg.norm(p1 - p2))
+
 
 def calculate_jaccard_index(mask1: np.ndarray, mask2: np.ndarray) -> float:
     """
@@ -28,6 +31,7 @@ def calculate_jaccard_index(mask1: np.ndarray, mask2: np.ndarray) -> float:
     union = np.logical_or(mask1, mask2).sum()
     return float(intersection / union) if union > 0 else 0.0
 
+
 def ensure_path(path: Union[str, Path]) -> Path:
     """
     Ensure a path is a pathlib.Path object.
@@ -38,6 +42,7 @@ def ensure_path(path: Union[str, Path]) -> Path:
         Path object.
     """
     return Path(path) if isinstance(path, str) else path
+
 
 def compute_volume_ratio(v1: float, v2: float) -> float:
     """
